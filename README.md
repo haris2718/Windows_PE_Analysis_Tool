@@ -1,195 +1,160 @@
-# 🔍 PE Analysis - Εργαλείο Ανάλυσης Εκτελέσιμων Αρχείων Windows
+#  PE Analysis – Windows Executable File Analysis Tool
 
-## 📌 Τι είναι τα PE αρχεία;
+##  What are PE files?
 
-Τα PE (Portable Executable) είναι η κύρια μορφή εκτελέσιμων αρχείων στο λειτουργικό σύστημα Windows. Περιλαμβάνουν αρχεία όπως `.exe`, `.dll`, `.sys`, κ.ά.  
-Περιέχουν πληροφορίες για την εκτέλεση του προγράμματος, sections με κώδικα και δεδομένα, πίνακες imports/exports, headers και metadata.
+PE (Portable Executable) files are the primary format for executable files on the Windows operating system. They include files such as `.exe`, `.dll`, `.sys`, and more.  
+They contain information for program execution, code and data sections, import/export tables, headers, and metadata.
 
-Η ανάλυση PE αρχείων είναι σημαντική για:
-- Ανίχνευση malware
+Analyzing PE files is important for:
+- Malware detection
 - Reverse engineering
-- Κατανόηση της συμπεριφοράς ενός εκτελέσιμου
+- Understanding executable behavior
 
 ---
 
-## 🧰 Τι κάνει αυτό το εργαλείο;
+##  What does this tool do?
 
-Αυτό το εργαλείο εκτελεί **στατική ανάλυση** σε αρχεία PE και παρέχει:
-- Εξαγωγή strings (floss)
-- Ανίχνευση ύποπτων imports & συναρτήσεων
-- Ανάλυση sections (π.χ. RWX flags)
-- VirusTotal lookup για hash
-- Αναφορά με χρήσιμα ευρήματα για έλεγχο κακόβουλης συμπεριφοράς
+This tool performs **static analysis** on PE files and offers:
+- String extraction (via floss)
+- Detection of suspicious imports & functions
+- Section analysis (e.g., RWX flags)
+- VirusTotal hash lookup
+- A report with useful findings for malicious behavior inspection
 
 ---
 
-## Λειτουργίες
+## Features
 
-- ✅ **Αναγνώριση αρχιτεκτονικής και χρόνου μεταγλώττισης του αρχείου**
+-  **Architecture identification and compile time retrieval**
 
-  🛠️ Τι κάνει:
+   What it does:
+  - Detects the file's architecture (32-bit or 64-bit)
+  - Calculates the imphash
+  - Retrieves the compile time
+  - (Optionally) provides full PE information depending on arguments (`--IMPHASH`, `--BIT`, `--COMPILE`, `--DETAILS`, `--REPORT`) passed via argparse.
 
-    Η συνάρτηση επιστρέφει κρίσιμες πληροφορίες σχετικά με:
-    - Τον τύπο αρχιτεκτονικής του αρχείου (32-bit ή 64-bit),
-    - Το imphash (ένα hash βασισμένο στις εισαγόμενες συναρτήσεις),
-    - Τον χρόνο μεταγλώττισης (compile time),
-    - (Προαιρετικά) όλες τις πληροφορίες του PE αρχείου.Αυτές οι πληροφορίες παρέχονται ανάλογα με το τι όρισμα (--IMPHASH, --BIT, --COMPILE, --DETAILS, --REPORT) έχει δώσει ο χρήστης μέσω argparse.
-      
-  🧠 Γιατί είναι χρήσιμη:
+   Why it's useful:
+  - **Imphash**: Useful for comparing files—similar imphashes may indicate common origins.
+  - **Architecture**: Determines whether the file is 32-bit or 64-bit.
+  - **Compile Time**: Reveals when the file was built; attackers sometimes manipulate it.
+  - **Report mode**: Summarizes all information.
 
-    - Imphash: Είναι χρήσιμο για σύγκριση αρχείων — αρχεία με τον ίδιο imphash πιθανόν έχουν παρόμοια συμπεριφορά ή κοινή προέλευση.
-    - Αρχιτεκτονική: Σου λέει αν το αρχείο είναι 32-bit ή 64-bit, κάτι που καθορίζει με ποια εργαλεία θα το αναλύσεις ή τρέξεις.
-    - Compile Time: Μπορεί να αποκαλύψει πότε δημιουργήθηκε το αρχείο — οι κακόβουλοι συντάκτες συχνά πειράζουν την ώρα για να κρύψουν την πραγματική τους δραστηριότητα.
-    - REPORT mode: Παρέχει συνοπτική αναφορά με όλες τις παραπάνω πληροφορίες.
-  
   ```bash
   python pe_analysis.py -f test.exe --bit
   ```
 
-- ✅ **Υπολογισμός κατακερματισμένων τιμών (md5, sha1, sha256, imphash)**
+-  **Hash calculation (MD5, SHA1, SHA256, imphash)**
+
   ```bash
   python pe_analysis.py -f test.exe -md5 -sha1 -sha256 -imp
   ```
 
-- ✅ **Έλεγχος VirusTotal με χρήση API key**
+-  **VirusTotal checking via API key**
+
   ```bash
   python pe_analysis.py -f test.exe -v <VIRUSTOTAL_API_KEY>
   ```
 
-- ✅ **Ανάλυση των sections του αρχείου**
+-  **Section Analysis**
 
-   🔍 Τι ελέγχει:
+    What it checks:
+   - Section name (e.g., .text, .data, .rsrc)
+   - MD5 and SHA-256 hashes of section content
+   - Section entropy
+   - Executable section flag
 
-    - Όνομα του section (π.χ. .text, .data, .rsrc)
+   Why it's useful:
+  - Detects suspicious sections with high entropy.
+  - Section hashes can verify integrity or match known malware.
 
-    - MD5 και SHA-256 hash του περιεχομένου του section
-
-    - Εντροπία του section (δείχνει πόσο "τυχαίο" φαίνεται το περιεχόμενο)
-
-        Αν η τιμή εντροπίας ≥ 7, αυτό συνήθως υποδηλώνει κρυπτογραφημένα ή συμπιεσμένα δεδομένα.
-
-    - Αν το section είναι εκτελέσιμο (δηλ. αν μπορεί να περιέχει κώδικα)
-
-  🧠 Γιατί είναι χρήσιμη:
-  
-    Επιτρέπει τον εντοπισμό ύποπτων sections, π.χ. με πολύ υψηλή εντροπία που πιθανώς περιέχουν obfuscated ή packed κώδικα.
-    Η παρουσία εκτελέσιμων sections με υψηλή εντροπία είναι συχνή σε κακόβουλα αρχεία και μπορεί να σηματοδοτεί προσπάθεια απόκρυψης κακόβουλου λογισμικού.
-    Τα hashes βοηθούν στον έλεγχο ακεραιότητας ή στο συγκριτικό έλεγχο με βάσεις δεδομένων malware (π.χ. VirusTotal).
-    Παρέχει συνοπτική και οργανωμένη εικόνα του τρόπου με τον οποίο είναι δομημένο το αρχείο.
-    
   ```bash
   python pe_analysis.py -f test.exe --section_data
   ```
 
-- ✅ **Εντοπισμός γνωστών packers μέσω ονομάτων sections**
+-  **Known packer detection through section names**
 
-  Η εντολή προσπαθεί να εντοπίσει αν το PE αρχείο έχει "πακεταριστεί" (packed) με τη χρήση γνωστών packer εργαλείων, αναλύοντας τα ονόματα των sections.
-  🛠️ Τι κάνει:
-    - Διαβάζει από ένα αρχείο packers_sections.csv, το οποίο περιέχει γνωστά ονόματα sections που χρησιμοποιούνται από packer προγράμματα (π.χ. UPX, ASPack, Themida).
-    - Ελέγχει αν το PE αρχείο που εξετάζουμε περιέχει sections με αυτά τα ονόματα.
-    - Αν βρει κάποιο ύποπτο section, το αναφέρει ως πιθανό δείγμα χρήσης packer.
-  
-  🧠 Γιατί είναι χρήσιμη:
-  
-    - Τα packed αρχεία συχνά χρησιμοποιούνται για να αποκρύψουν κακόβουλο κώδικα, κάνοντάς τα πιο δύσκολα στην ανάλυση.
-    - Η αναγνώριση packers μπορεί να σε βοηθήσει να αποφασίσεις αν πρέπει πρώτα να κάνεις unpack το αρχείο, πριν προχωρήσεις σε περαιτέρω στατική  ή δυναμική ανάλυση.
-    - Σου δίνει άμεσες ενδείξεις για το αν το αρχείο έχει τροποποιηθεί ή έχει υποστεί "θάψιμο" του αρχικού κώδικα.
-      
+   What it does:
+  - Reads from a `packers_sections.csv` file containing known section names.
+  - Flags if any match is found.
+
+   Why it's useful:
+  - Packed files often hide malicious code.
+
   ```bash
   python pe_analysis.py -f test.exe -p
   ```
 
-- ✅ **Αναγνώριση μη συνηθισμένων section names**
-  
-  🛠️ Τι κάνει:
-    - Ελέγχει τα ονόματα των sections (όπως .text, .data, .rsrc) μέσα στο PE αρχείο.
-    - Συγκρίνει τα ονόματα αυτά με μια λίστα από γνωστά/συνηθισμένα section names.
-    - Εάν βρει μη αναμενόμενα ή περίεργα ονόματα, τα επισημαίνει ως ύποπτα.
+-  **Detection of uncommon section names**
 
-  🧠 Γιατί είναι χρήσιμο:
-  
-    - Τα κακόβουλα προγράμματα τροποποιούν ή προσθέτουν sections με περίεργα ονόματα (π.χ. .xyz, .upx0, .asdf) για να κρύψουν κακόβουλο κώδικα.
-    - Μπορεί να αποτελέσει ένδειξη πακεταρισμένου ή τροποποιημένου αρχείου.
-    - Αποτελεί ένα πρώτο βήμα στατικής ανάλυσης για την ανίχνευση ενδείξεων αλλοίωσης.
-  
+   What it does:
+  - Compares section names to a whitelist of common ones.
+  - Flags unfamiliar names.
+
+   Why it's useful:
+  - Malware often introduces custom or unusual sections.
+
   ```bash
   python pe_analysis.py -f test.exe -u
   ```
 
-- ✅ **Εξαγωγή συμβολοσειρών**
+-  **String extraction**
+
   ```bash
   python pe_analysis.py -f test.exe -s
   ```
 
-- ✅ **Εντοπισμός ενδιαφερουσών συμβολοσειρών (IP, URL, MAC, emails, registry keys κ.ά.)**
-  
-  🛠️ Αυτή η συνάρτηση αναλύει ένα αρχείο και εντοπίζει «ενδιαφέρουσες» συμβολοσειρές που μπορεί να αποκαλύψουν κακόβουλη ή ύποπτη συμπεριφορά, όπως:
-  
-    - IPv4 & IPv6 διευθύνσεις (π.χ. 192.168.0.1)
-    - URLs (π.χ. http://malicious.site)
-    - Email διευθύνσεις (π.χ. hacker@evilcorp.com)
-    - MAC addresses (π.χ. 00:0a:95:9d:68:16)
-    - Domain names (π.χ. bad-domain.org)
-    - Registry keys των Windows (π.χ. HKEY_LOCAL_MACHINE\Software...\Run)
+-  **Detection of interesting strings**
 
-  🧠 Γιατί είναι χρήσιμη:
-    - Βοηθά στην αναγνώριση πιθανής κακόβουλης δικτυακής επικοινωνίας.
-    - Μπορεί να αποκαλύψει στοιχεία στόχων ή υποδομών που χρησιμοποιεί το αρχείο.
-    - Αναδεικνύει πιθανές παρεμβάσεις στο σύστημα, όπως τροποποιήσεις σε registry.
-    - Είναι εξαιρετικά χρήσιμη για reverse engineering και ανάλυση κακόβουλου λογισμικού, καθώς παρέχει στοιχεία χωρίς αποσυμβολοποίηση.
-    
+   What it does:
+  - Extracts strings like:
+    - IP addresses
+    - URLs
+    - Email addresses
+    - MAC addresses
+    - Domain names
+    - Windows registry keys
+
+   Why it's useful:
+  - Helps spot network connections, C2 servers, system modifications.
+
   ```bash
   python pe_analysis.py -f test.exe --intresting
   ```
 
-- ✅ **Χρήση του floss για ανάκτηση κρυφών ή obfuscated strings**
-  (απαιτεί εγκατεστημένο το floss)
-  
-  🛠️ Τι κάνει:
+-  **Floss integration for hidden/obfuscated string extraction**
 
-    - Εκτελεί το εργαλείο floss πάνω στο αρχείο .exe.
-    - Αντλεί κρυφές, αποκρυπτογραφημένες ή δυσδιάκριτες συμβολοσειρές (strings).
-    - Το floss μπορεί να αναλύσει κώδικα που περιέχει strings τα οποία δεν είναι εμφανή μέσω απλής ανάλυσης με strings ή re.findall.
-      
-  🧠 Γιατί είναι χρήσιμο:
+   What it does:
+  - Runs Floss on the executable to uncover hidden or decrypted strings.
 
-    - Πολλά malware κρύβουν strings (π.χ. URLs, εντολές, ονόματα αρχείων) για να αποφύγουν την ανίχνευση.
-    - Το floss χρησιμοποιεί στατική ανάλυση και heuristics για να βρει strings που προκύπτουν δυναμικά κατά την εκτέλεση.
-    - Βοηθά στην καλύτερη κατανόηση της λειτουργίας ενός κακόβουλου αρχείου, ακόμα και χωρίς εκτέλεση.
-  
+   Why it's useful:
+  - Malware often hides important information to avoid detection.
+
   ```bash
   python pe_analysis.py -f test.exe --floss
   ```
 
-- ✅ **Λίστα με βιβλιοθήκες και συναρτήσεις που εισάγει το αρχείο**
+-  **Imports and suspicious function analysis**
 
-  🛠️ Τι κάνει:
+   What it does:
+  - Analyzes the Import Address Table (IAT).
+  - Highlights suspicious API calls.
 
-    - Επισημαίνει «ύποπτες» συναρτήσεις που χρησιμοποιούνται συχνά από malware.
-    - Ο πίνακας IAT ενός PE αρχείου αποκαλύπτει ποιες συναρτήσεις του Windows API χρησιμοποιεί το πρόγραμμα.
-    - Ελέγχει τις εισαγόμενες συναρτήσεις (imports) του PE αρχείου (μέσω του πίνακα ΙΑΤ – Import Address Table).
-    - Αν βρει κάποια από τις ύποπτες συναρτήσεις, την εμφανίζει μαζί με περιγραφή γιατί θεωρείται ύποπτη.
+   Why it's useful:
+  - Imports can indicate malicious behavior (e.g., process injection, network access).
 
-  🧠 Γιατί είναι χρήσιμη:
-
-    - Οι εισαγόμενες συναρτήσεις είναι συχνά αποκαλυπτικές για την πρόθεση του αρχείου.
-    - Αν για παράδειγμα εισάγει συναρτήσεις για επικοινωνία με το διαδίκτυο, δημιουργία διεργασιών, τροποποίηση μνήμης, αυτό μπορεί να δείχνει κακόβουλη συμπεριφορά.
-    - Μπορεί να εντοπίσει τεχνικές που χρησιμοποιούν malware, όπως process injection, keylogging, κτλ.
-    - Ιδανική για ανάλυση malware σε αρχικό στάδιο, χωρίς να χρειάζεται να εκτελέσεις το αρχείο.
-  
-  
   ```bash
   python pe_analysis.py -f test.exe -i
   ```
 
-- ✅ **Αυτόματη δημιουργία αναφοράς και αποθήκευση σε αρχείο**
+-  **Automatic report generation and file export**
+
   ```bash
   python pe_analysis.py -f test.exe -r -o report.txt
   ```
 
 ---
 
-## Παραδείγματα Συνδυαστικής Εκτέλεσης
+## Example Combined Execution
 
 ```bash
 python pe_analysis.py -f test.exe --bit -md5 -sha1 --section_data -s --intresting -r -o final_report.txt
@@ -197,12 +162,10 @@ python pe_analysis.py -f test.exe --bit -md5 -sha1 --section_data -s --intrestin
 
 ---
 
-
-Εγκατάσταση:
+## Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
 
